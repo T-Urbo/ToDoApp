@@ -19,7 +19,6 @@ class ViewController: UIViewController {
     
     
     @IBAction func onAddButtonClick(_ sender: UIButton) {
-        tableView.reloadData()
         let alert = UIAlertController(title: "Add new item", message: "Enter the text", preferredStyle: .alert)
         alert.addTextField()
         
@@ -40,13 +39,10 @@ class ViewController: UIViewController {
             
         }
         
-        self.fetchItems()
-        
-        
         alert.addAction(submitButton)
         self.present(alert, animated: true, completion: nil)
         
-        
+        self.fetchItems()
 //        textArray.append("testtext")
         print(itemsArray?.count)
         
@@ -60,7 +56,7 @@ class ViewController: UIViewController {
         
         tableView.delegate = self
         tableView.dataSource = self
-        
+        fetchItems()
     }
 
     func fetchItems() {
@@ -74,47 +70,38 @@ class ViewController: UIViewController {
             
         }
     }
-    
-    
-    func getAllItems() {
-        
-    }
-    
-    func createItem(name: String) {
-        let item = Item()
-        item.name = name
-        itemsArray?.append(item)
-    }
-    
-    func deleteItem(item: Item) {
-        if let index = itemsArray?.firstIndex(of: item)
-        {
-            itemsArray?.remove(at: index)
-        }
-    }
-    
-    func deleteAllItems() {
-        itemsArray?.removeAll()
-    }
-    
-    func updateItem(item: Item) {
-        if context.hasChanges {
-            do {
-                try context.save()
-            } catch {
-                // Replace this implementation with code to handle the error appropriately.
-                // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-                let nserror = error as NSError
-                fatalError("Unresolved error \(nserror), \(nserror.userInfo)")
-            }
-        }
-    
-    }
 }
 
 extension ViewController: UITableViewDelegate, UITableViewDataSource {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        print("tap has acqueried")
+        let item = self.itemsArray![indexPath.row]
+        
+        let alert = UIAlertController(title: "Edit item", message: "Edit your note below", preferredStyle: .alert)
+        alert.addTextField()
+        
+        let textfield = alert.textFields![0]
+        textfield.text = item.name
+        
+        let saveButton = UIAlertAction(title: "OK", style: .default) { (action) in
+            item.name = textfield.text
+            
+            do {
+                try self.context.save()
+            }
+            catch {
+                
+            }
+            
+            self.fetchItems()
+        }
+        
+        let cancelButton = UIAlertAction(title: "Cancel", style: .cancel) { (action) in
+            print("cancel")
+        }
+        
+        alert.addAction(saveButton)
+        alert.addAction(cancelButton)
+        self.present(alert, animated: true, completion: nil)
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -127,5 +114,23 @@ extension ViewController: UITableViewDelegate, UITableViewDataSource {
         let item = self.itemsArray![indexPath.row]
         cell.textLabel?.text = item.name
         return cell
+    }
+    
+    func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        let action = UIContextualAction(style: .destructive, title: "Delete") { (action, view, completionHandler) in
+            let itemToRemove = self.itemsArray![indexPath.row]
+            self.context.delete(itemToRemove)
+            
+            do {
+                try self.context.save()
+            }
+            catch {
+                
+            }
+            
+            self.fetchItems()
+        }
+        
+        return UISwipeActionsConfiguration(actions: [action])
     }
 }
